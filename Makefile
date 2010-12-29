@@ -1,17 +1,17 @@
 override CFLAGS := -fvisibility=hidden -fpic -ansi -Wall -Wno-comment -Werror -Wno-error=unused-variable -g $(CFLAGS)
 
-all: libsiddartha.so include test
+all: libsiddhartha.so include test
 
-include: siddartha.h
-	@echo " CP $^ => include/siddartha/"
-	@mkdir -p include/siddartha
-	@cp $^ include/siddartha
+include: siddhartha.h
+	@echo " CP $^ => include/siddhartha/"
+	@mkdir -p include/siddhartha
+	@cp $^ include/siddhartha
 
-test: test.o libsiddartha.so
+test: test.o libsiddhartha.so
 	@echo " LD $^ => $@"
-	@${CXX} $^ -L. -lsiddartha -lgtest -lgtest_main -o $@ -Wl,-rpath,.
+	@${CXX} $^ -L. -lsiddhartha -lgtest -lgtest_main -o $@ -Wl,-rpath,.
 
-libsiddartha.so: siddartha.o
+libsiddhartha.so: siddhartha.o
 	@echo " LD $^ => $@"
 	@${CXX} -shared $^ -o $@
 
@@ -24,7 +24,7 @@ libsiddartha.so: siddartha.o
 	@${CXX} -c $^ ${CFLAGS}
 
 clean:
-	-rm main libsiddartha.so test
+	-rm main libsiddhartha.so test
 	-rm -frv *.o
 	-rm *~
 	-rm -frv include

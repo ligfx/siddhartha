@@ -1,4 +1,4 @@
-#include "siddartha.h"
+#include "siddhartha.h"
 
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/device/array.hpp>
