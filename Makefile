@@ -13,7 +13,7 @@ test: test.o libsiddartha.so
 
 libsiddartha.so: siddartha.o
 	@echo " LD $^ => $@"
-	@${CC} -shared $^ -o $@
+	@${CXX} -shared $^ -o $@
 
 %.o: %.c
 	@echo " CC $^ => $@"

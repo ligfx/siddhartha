@@ -48,7 +48,7 @@ typedef enum {
 } PrayError;
 	
 SIDD_API PrayFile* pray_new ();
-SIDD_API PrayFile* pray_new_from_data (const void*, PrayError*);
+SIDD_API PrayFile* pray_new_from_data (char*, size_t, PrayError*);
 SIDD_API size_t pray_get_number_of_blocks (const PrayFile*);
 SIDD_API PrayBlock pray_get_block (const PrayFile*, size_t);
 
@@ -61,6 +61,10 @@ SIDD_API void* pray_block_get_data (const PrayBlock);
 	
 #ifdef __cplusplus
 }
+
+#include <iostream>
+
+SIDD_API PrayFile* pray_new_from_stream (std::istream&, PrayError*);
 #endif
 
 #endif // SIDDARTHA
