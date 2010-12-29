@@ -15,6 +15,7 @@
   #endif
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -26,11 +27,12 @@ typedef struct PrayFile PrayFile;
 typedef struct PrayBlock PrayBlock;
 	
 struct PrayBlock {
-	char type[4];
+	char type[5];
 	char name[128];
 	uint32_t size;
 	uint32_t size_uncompressed;
 	uint32_t compressed;
+	void *data;
 };
 	
 typedef enum {
@@ -48,6 +50,14 @@ typedef enum {
 SIDD_API PrayFile* pray_new ();
 SIDD_API PrayFile* pray_new_from_data (const void*, PrayError*);
 SIDD_API size_t pray_get_number_of_blocks (const PrayFile*);
+SIDD_API PrayBlock pray_get_block (const PrayFile*, size_t);
+
+SIDD_API const char* pray_block_get_type (const PrayBlock*);
+SIDD_API const char* pray_block_get_name (const PrayBlock*);
+SIDD_API size_t pray_block_get_size (const PrayBlock);
+SIDD_API size_t pray_block_get_size_uncompressed (const PrayBlock);
+SIDD_API bool pray_block_is_zlib_compressed (const PrayBlock);
+SIDD_API void* pray_block_get_data (const PrayBlock);
 	
 #ifdef __cplusplus
 }

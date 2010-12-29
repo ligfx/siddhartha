@@ -54,6 +54,7 @@ static struct sidd_stream data_map_iface = {
 
 struct PrayFile {
 	size_t count;
+	PrayBlock *blocks;
 };
 
 PrayFile*
@@ -61,6 +62,7 @@ pray_new ()
 {
 	PrayFile *pray = malloc (sizeof (*pray));
 	pray->count = 0;
+	pray->blocks = NULL;
 	return pray;
 }
 
@@ -68,6 +70,48 @@ size_t
 pray_get_number_of_blocks (const PrayFile *pray)
 {
 	return pray->count;
+}
+
+PrayBlock
+pray_get_block (const PrayFile *pray, size_t i)
+{
+	return pray->blocks[i];
+}
+
+const char*
+pray_block_get_type (const PrayBlock *block)
+{
+	return block->type;
+}
+
+const char*
+pray_block_get_name (const PrayBlock *block)
+{
+	return block->name;
+}
+
+size_t
+pray_block_get_size (const PrayBlock block)
+{
+	return block.size;
+}
+
+size_t
+pray_block_get_size_uncompressed (const PrayBlock block)
+{
+	return block.size_uncompressed;
+}
+
+bool
+pray_block_is_zlib_compressed (const PrayBlock block)
+{
+	return ((char*)&block.compressed)[0];
+}
+
+void*
+pray_block_get_data (PrayBlock block)
+{
+	return block.data;
 }
 
 #define READ(count, ptr) iface.read(stream, count, ptr)
@@ -87,6 +131,7 @@ pray_block_make_from_stream (void* stream, struct sidd_stream iface, PrayError *
 
 #define ENSURE(condition,err) if (!(condition)) { *error = err; return block; }
 	ENSURE(READ(4,&block.type) == 4, PRAY_BAD_BLOCK_TYPE);
+	block.type[4] = '\0';
 	
 	ENSURE(READ(128,&block.name) == 128, PRAY_BAD_BLOCK_NAME);
 	ENSURE(block.name[127] == 0, PRAY_BAD_BLOCK_NAME);
@@ -95,13 +140,26 @@ pray_block_make_from_stream (void* stream, struct sidd_stream iface, PrayError *
 	ENSURE(READ(4, &block.size_uncompressed) == 4, PRAY_BAD_BLOCK_SIZE_UNCOMPRESSED);
 	ENSURE(READ(4, &block.compressed) == 4, PRAY_BAD_BLOCK_COMPRESSED_FLAG);
 	
-	void *data = malloc (block.size);
-	ENSURE(READ(block.size, data) == block.size, PRAY_BAD_BLOCK_DATA);
-	free(data);
-	
+	block.data = malloc (block.size);
+	ENSURE(READ(block.size, block.data) == block.size, PRAY_BAD_BLOCK_DATA);
 #undef ENSURE
 	
 	return block;
+}
+
+PrayBlock*
+pray_block_read_all (size_t *i, void *stream, struct sidd_stream iface, PrayError *error)
+{
+	PrayBlock block = pray_block_make_from_stream (stream, iface, error);
+	PrayBlock *blocks;
+	if (PRAY_ERROR_NULL == *error) {
+		int j = (*i)++;
+		blocks = pray_block_read_all (i, stream, iface, error);
+		blocks[j] = block;
+	} else {
+		blocks = malloc (sizeof (*blocks) * *i);
+	}
+	return blocks;
 }
 
 PrayFile*
@@ -120,11 +178,7 @@ pray_new_from_stream (void* stream, struct sidd_stream iface, PrayError *error)
 	
 	PrayFile *pray = pray_new();
 	
-	while (true) {
-		PrayBlock block = pray_block_make_from_stream (stream, iface, error);
-		if (PRAY_ERROR_NULL != *error) break;
-		pray->count++;
-	}
+	pray->blocks = pray_block_read_all (&pray->count, stream, iface, error);
 	if (PRAY_END_OF_FILE == *error) *error = PRAY_ERROR_NULL;
 	
 	return pray;
