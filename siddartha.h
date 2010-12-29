@@ -19,7 +19,13 @@
 extern "C" {
 #endif
 
+typedef struct PrayFile PrayFile;
+typedef enum {
+	PRAY_ERROR_NULL,
+	PRAY_BAD_FILE_HEADER,
+} PrayError;
 	
+SIDD_API PrayFile* pray_new_from_data (const void*, PrayError*);
 	
 #ifdef __cplusplus
 }
