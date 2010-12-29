@@ -1,0 +1,6 @@
+*.o
+.DS_Store
+include/
+*.so
+*.dylib
+test
