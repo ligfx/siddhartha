@@ -1,5 +1,6 @@
 #include "siddartha.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,25 +52,82 @@ static struct sidd_stream data_map_iface = {
 
 // ~ PrayFile ~
 
+struct PrayFile {
+	size_t count;
+};
+
+PrayFile*
+pray_new ()
+{
+	PrayFile *pray = malloc (sizeof (*pray));
+	pray->count = 0;
+	return pray;
+}
+
+size_t
+pray_get_number_of_blocks (const PrayFile *pray)
+{
+	return pray->count;
+}
+
 #define READ(count, ptr) iface.read(stream, count, ptr)
 #define SEEK(mark) iface.seek(stream, mark)
 #define TELL(mark) iface.tell(stream)
-#define ENSURE(condition,err) if (!(condition)) { *error = err; return NULL; }
+
+
+PrayBlock
+pray_block_make_from_stream (void* stream, struct sidd_stream iface, PrayError *error)
+{
+	PrayBlock block;
+	
+	if (*(char*)(((struct data_map*)stream)->ptr) == '\0') {
+		*error = PRAY_END_OF_FILE;
+		return block;
+	}
+
+#define ENSURE(condition,err) if (!(condition)) { *error = err; return block; }
+	ENSURE(READ(4,&block.type) == 4, PRAY_BAD_BLOCK_TYPE);
+	
+	ENSURE(READ(128,&block.name) == 128, PRAY_BAD_BLOCK_NAME);
+	ENSURE(block.name[127] == 0, PRAY_BAD_BLOCK_NAME);
+	
+	ENSURE(READ(4, &block.size) == 4, PRAY_BAD_BLOCK_SIZE);
+	ENSURE(READ(4, &block.size_uncompressed) == 4, PRAY_BAD_BLOCK_SIZE_UNCOMPRESSED);
+	ENSURE(READ(4, &block.compressed) == 4, PRAY_BAD_BLOCK_COMPRESSED_FLAG);
+	
+	void *data = malloc (block.size);
+	ENSURE(READ(block.size, data) == block.size, PRAY_BAD_BLOCK_DATA);
+	free(data);
+	
+#undef ENSURE
+	
+	return block;
+}
 
 PrayFile*
 pray_new_from_stream (void* stream, struct sidd_stream iface, PrayError *error)
 {
 	char header[4];
-	
+
+#define ENSURE(condition,err) if (!(condition)) { *error = err; return NULL; }
 	ENSURE(READ(4,&header) == 4, PRAY_BAD_FILE_HEADER);
 	ENSURE(header[0] == 'P' &&
 		   header[1] == 'R' &&
 		   header[2] == 'A' &&
 		   header[3] == 'Y',
 		   PRAY_BAD_FILE_HEADER);
+#undef ENSURE
 	
-	*error = PRAY_ERROR_NULL;
-	return NULL;
+	PrayFile *pray = pray_new();
+	
+	while (true) {
+		PrayBlock block = pray_block_make_from_stream (stream, iface, error);
+		if (PRAY_ERROR_NULL != *error) break;
+		pray->count++;
+	}
+	if (PRAY_END_OF_FILE == *error) *error = PRAY_ERROR_NULL;
+	
+	return pray;
 }
 
 PrayFile*
